@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+
+    <title>Concurrency without threading</title>
+
+    <meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+    <meta name="author" content="Hakim El Hattab">
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" href="css/reveal.min.css">
+    <link rel="stylesheet" href="css/theme/default.css" id="theme">
+
+    <!-- For syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <!-- If the query includes 'print-pdf', use the PDF print sheet -->
+    <script>
+      document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+    <style>
+      .reveal img.transparent {
+        border: none;
+        box-shadow: none;
+        background: transparent;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <div class="reveal">
+
+      <!-- Any section element inside of this container is displayed as a slide -->
+      <div class="slides">
+        <section>
+          <h2>
+            Concurrency<br>
+            <span class="fragment fade-in">almost</span>
+            without<br>
+            threading
+          </h2>
+        </section>
+
+        <section>
+          <section>
+            <h2>Who am I?</h2>
+            <br>
+            <h3>Gergo Sulymosi</h3>
+            <p>
+              chief git blame analyst<br><br>
+              GH/Twitter: <a href="https://github.com/trekdemo">@trekdemo</a>
+            </p>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h3>Why should I care?</h3>
+
+            <ul>
+              <li class="fragment fade-in">
+                <a href="http://www.kegel.com/c10k.html">The C10K problem</a>
+                <span class="fragment roll-in">- OK maybe it's not your problem</span>
+              </li>
+              <li class="fragment fade-in">Blocking I/O everywhere</li>
+              <li class="fragment fade-in">
+                Most probably you're wasting resources
+                <ul>
+                  <li>Does your typical application looks like this?</li>
+                  <li>Single Threaded</li>
+                  <li>200MB (or more!) to process one request?!</li>
+                  <li>Load Average: 0.10  0.12  0.09</li>
+                </ul>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Blocking what?</h3>
+            <img src="img/blocking_IO.png" title alt />
+            <p>Spent 90% waiting for IO, 10% doing actual work :(</p>
+          </section>
+
+          <section>
+            <h3>...so what should I do?</h3>
+            <img src="img/evented_IO.png" title alt />
+          </section>
+
+          <section>
+            <h3>When should I use?</h3>
+
+            <ul>
+              <li class="fragment fade-in">Many concurrent clients</li>
+              <li class="fragment fade-in">Slow clients</li>
+              <li class="fragment fade-in">Streaming</li>
+              <li class="fragment fade-in">Websockets</li>
+              <li class="fragment fade-in">Many I/O operation</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>What is EventMachine?</h3>
+            <p class="fragment fade-in">
+              It's a <strong>toolkit</strong> for writing <strong>evented</strong> applications.
+            </p>
+          </section>
+
+          <section>
+            <h3>Who uses it?</h3>
+            <img class="transparent" src="http://code.macournoyer.com/thin/images/logo.gif" title alt /><br/>
+            <img class="transparent" src="http://faye.jcoglan.com/stylesheets/faye-logo.gif" title alt /><br/>
+            <h3>Rainbows!</h3>
+            <br>
+            <p>...and many more, sorry I'm lazy</p>
+          </section>
+
+          <section>
+            <h3>What's the catch?</h3>
+            <ul>
+              <li>Application code becomes callbacks (solved with Fibers)</li>
+              <li>Error handling difficult</li>
+              <li>Learning curve</li>
+              <li>Lack of documentation</li>
+              <li>Projects looking for maintainers</li>
+            </ul>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h3>How it works</h3>
+          </section>
+
+          <section>
+            <h3>Synchronous code</h3>
+            <pre><code data-trim>
+balls = synchronous_ball_count(playground)
+paint_red(balls)
+roll_twice(balls)
+deliver_to_shop(balls)
+            </code></pre>
+          </section>
+
+          <section>
+            <h3>Async code</h3>
+            <pre><code data-trim>
+async_ball_count(small_playground) do |balls|
+  # called only after all balls counted
+  paint_red(balls) do
+    # called only after all balls painted to red
+    roll_twice(balls)
+    deliver_to_shop(balls)
+  end
+end
+
+async_ball_count(large_playground) do |balls|
+  paint_blue(balls) do
+    roll_twice(balls)
+    deliver_to_shop(balls)
+  end
+end
+            </code></pre>
+          </section>
+
+          <section>
+            <h3>The run loop</h3>
+            <pre><code data-trim>
+require 'eventmachine'
+
+EventMachine.run do
+  # your code
+end
+            </code></pre>
+          </section>
+
+          <section>
+            <h3>What happens in the loop?</h3>
+            <ul>
+              <li>Data sending and receiving,</li>
+              <li>file reading and writing,</li>
+              <li>network activity monitoring, </li>
+              <li>connection creation,</li>
+              <li>... and your custom code.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Build something<br>for God's sake!44!!4</h3>
+            <p>
+              Create a basic mirror server!
+            </p>
+          </section>
+
+          <section>
+            <h3>When will my code run?</h3>
+            <ul>
+              <li>Timers
+                <ul>
+                  <li><code>EM::Timer</code></li>
+                  <li><code>EM::PeriodicTimer</code></li>
+                </ul>
+              </li>
+              <li><code>EM.next_tick</code></li>
+              <li><code>EM.defer</code> ( and where will my code run? )</li>
+            </ul>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h3>EM::Deferrables</h3>
+            <p>Isolate your custom evented logic!</p>
+            <ul>
+              <li>callbacks</li>
+              <li>errbacks</li>
+            </ul>
+          </section>
+          <section>
+            <p>I'm a bit late, it's 18:33</p>
+            <img src="http://i.imgur.com/Z9tbQJF.gif" title alt />
+          </section>
+
+          <section>
+            <p>A few words about <a
+href="http://ruby-doc.org/core-2.0/Fiber.html"><code>Fibers</code></a> and <a
+href="https://github.com/igrigorik/em-synchrony"><code>EM::Synchrony</code></a>
+            </p>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <pre style="font-size: 300%;"><code data-trim>
+EM.stop
+puts "Thanks"
+            </code></pre>
+          </section>
+
+          <section>
+            <h3>Questions?</h3>
+          </section>
+        </section>
+
+
+      </div>
+
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.min.js"></script>
+
+    <script>
+
+      // Full list of configuration options available here:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+
+        theme: 'sky', // Reveal.getQueryHash().theme, // available themes are in /css/theme
+        transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+        // Optional libraries used to extend on reveal.js
+        dependencies: [
+          { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+          { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+          // { src: 'plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
+          // { src: 'plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
+        ]
+      });
+
+    </script>
+
+  </body>
+</html>
